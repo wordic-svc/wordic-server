@@ -1,3 +1,4 @@
+import math
 from concurrent.futures import ThreadPoolExecutor
 from kiwipiepy import Kiwi
 from googletrans import Translator
@@ -222,8 +223,9 @@ def eng2attrive_list(text):
         text = std_data.word_to_chng[text]
 
     arr = []
+    allSize = len(text) + 1
 
-    for i in range(2, len(text) + 1):
+    for i in range(math.ceil(allSize * 0.2), math.ceil(allSize * 0.7)):
         result = abbreviate.process_string(text, i)
         arr.append({
             'text': result,
