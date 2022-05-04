@@ -7,20 +7,20 @@ import std_data
 from fastapi import Depends, FastAPI, APIRouter
 import asyncio
 from sqlalchemy import create_engine, text
-from sqlalchemy.orm import sessionmaker
+# from sqlalchemy.orm import sessionmaker
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, validator, field_validator
-from typing import Optional
-import config
-import logging
-import datetime
-import urllib.parse
+# from typing import Optional
+# import config
+# import logging
+# import datetime
+# import urllib.parse
 
 app = FastAPI()
 
-folder_path = config.MF_DATA_PATH
-log_filename = datetime.datetime.now().strftime(f"./sandoll.log")
-logging.basicConfig(filename=log_filename, level=logging.INFO, format='%(asctime)s - %(message)s')
+# folder_path = config.MF_DATA_PATH
+# log_filename = datetime.datetime.now().strftime(f"./sandoll.log")
+# logging.basicConfig(filename=log_filename, level=logging.INFO, format='%(asctime)s - %(message)s')
 
 # passwd = urllib.parse.quote(config.DATABASE_PASSWORD)
 # DATABASE_URL = f'postgresql+psycopg2://{config.DATABASE_USER}:{passwd}@{config.DATABASE_HOST}:{config.DATABASE_PORT}/{config.DATABASE_NAME}'
