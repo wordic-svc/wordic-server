@@ -6,7 +6,7 @@ import abbreviate
 import std_data
 from fastapi import Depends, FastAPI, APIRouter
 import asyncio
-from sqlalchemy import create_engine, text
+# from sqlalchemy import create_engine, text
 # from sqlalchemy.orm import sessionmaker
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, validator, field_validator
