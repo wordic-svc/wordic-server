@@ -1,35 +1,44 @@
 import math
 from concurrent.futures import ThreadPoolExecutor
-from kiwipiepy import Kiwi
+import kiwipiepy
 from googletrans import Translator
 import abbreviate
 import std_data
 from fastapi import Depends, FastAPI, APIRouter
 import asyncio
-# from sqlalchemy import create_engine, text
-# from sqlalchemy.orm import sessionmaker
+from sqlalchemy import create_engine, text
+from sqlalchemy.orm import sessionmaker
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, validator, field_validator
-# from typing import Optional
-# import config
-# import logging
-# import datetime
-# import urllib.parse
+from typing import Optional
+import config
+import logging
+from model.models import FnWord, FnWording, Base
+import datetime
+import urllib.parse
 
 app = FastAPI()
 
-# folder_path = config.MF_DATA_PATH
-# log_filename = datetime.datetime.now().strftime(f"./sandoll.log")
-# logging.basicConfig(filename=log_filename, level=logging.INFO, format='%(asctime)s - %(message)s')
+folder_path = config.MF_DATA_PATH
+log_filename = datetime.datetime.now().strftime(f"./sandoll.log")
+logging.basicConfig(filename=log_filename, level=logging.INFO, format='%(asctime)s - %(message)s')
 
-# passwd = urllib.parse.quote(config.DATABASE_PASSWORD)
-# DATABASE_URL = f'postgresql+psycopg2://{config.DATABASE_USER}:{passwd}@{config.DATABASE_HOST}:{config.DATABASE_PORT}/{config.DATABASE_NAME}'
-# engine = create_engine(DATABASE_URL)
+passwd = urllib.parse.quote(config.DATABASE_PASSWORD)
+DATABASE_URL = f'postgresql+psycopg2://{config.DATABASE_USER}:{passwd}@{config.DATABASE_HOST}:{config.DATABASE_PORT}/{config.DATABASE_NAME}'
+engine = create_engine(DATABASE_URL)
 
-# SessionLocal = sessionmaker(bind=engine)
-# 새 세션 생성
-# session = SessionLocal()
+SessionLocal = sessionmaker(bind=engine)
+session = SessionLocal()
 
+kiwi = kiwipiepy.Kiwi()
+fnWords = session.query(FnWord).filter().all()
+for fnWord in fnWords:
+    result = kiwi.add_user_word(fnWord.word, 'NNP', 100)
+# fnWordings = session.query(FnWording).filter().all()
+# for fnWording in fnWordings:
+#     if ' ' in fnWording.wording:
+#         continue
+#     result = kiwi.add_user_word(fnWording.wording, 'NNP', 100)
 class Result(BaseModel):
     kebab_case: str
     camel_case: str
@@ -91,10 +100,8 @@ async def say_hello(name: str):
             })
         return {'result': arr}
 
-
-# /text/{name} 엔드포인트
-@router.get("/text2/{name}", response_model=dict)
-async def say_hello(name: str):
+@router.get("/text3/{name}", response_model=dict)
+async def say_hello3(name: str):
     obj = split_kor2_eng(name)
     attrive_text = list(map(lambda x: x.attrive_text, obj))
     result = Result(
@@ -115,6 +122,77 @@ async def say_hello(name: str):
     return {'result': {
         "info": result,
         "words": obj
+    }}
+
+
+# /text/{name} 엔드포인트
+@router.get("/text2/{name}", response_model=dict)
+async def say_hello(name: str):
+    arr = []
+    # 만약 inputTxt가 용어라면 해당 용어를 array에 담아서 바로 리턴
+
+    result = Result(
+        kebab_case='',
+        camel_case='',
+        snake_case_l='',
+        snake_case_s='',
+        pascal_case='',
+        combined_text=[]
+    )
+
+    wording = session.query(FnWording).filter(FnWording.wording == name).first()
+    result_word = ''
+    if wording is not None:
+        wordings = wording.wording_abbr.split('_')
+        for word in wordings:
+            arr.append(word.lower())
+        result.pascal_case = list_to_pascal_case(arr)
+        result.camel_case = list_to_camel_case(arr)
+        result.snake_case_l = list_to_snake_case(arr).upper()
+        result.snake_case_s = list_to_snake_case(arr).lower()
+        result.kebab_case = list_to_kebab_case(arr)
+        result.combined_text = arr   # Assuming you want to add 'attrive_text' to 'combined_text'
+
+        result_word = []
+        result_word.append(Word(
+                kor_text=name,
+                eng_text=wording.wording,
+                attrive_text=wording.wording_abbr,
+                pos='',
+                code=''
+            ))
+    else:
+        obj = split_kor2_eng(name)
+        # check white space obj.eng_text
+        for word in obj:
+            if ' ' in word.eng_text:
+                result_word = obj
+                words = word.eng_text.split(' ')
+                for word in words:
+                    word = word.lower()
+                    if len(word) > 5:
+                        arr.append(abbreviate.process_string(word, 4).lower())
+                    elif len(word) > 4:
+                        arr.append(abbreviate.process_string(word, 3).lower())
+                    else:
+                        arr.append(abbreviate.process_string(word, 2).lower())
+            else:
+                result_word = obj
+                arr.append(word.attrive_text.lower())
+
+        # merge array arr and result_word
+
+        attrive_text = list(map(lambda x: x.attrive_text.lower(), obj))
+        result.pascal_case = list_to_pascal_case(attrive_text)
+        result.camel_case = list_to_camel_case(attrive_text)
+        result.snake_case_l = list_to_snake_case(attrive_text).upper()
+        result.snake_case_s = list_to_snake_case(attrive_text).lower()
+        result.kebab_case = list_to_kebab_case(attrive_text)
+        result.combined_text = attrive_text  # Assuming you want to add 'attrive_text' to 'combined_text'
+
+    return {'result': {
+        "info": result,
+        "words": result_word
     }}
 
 
@@ -167,30 +245,48 @@ def pos_code_to_korean(pos_code):
     return pos_mapping.get(pos_code, '알 수 없는 품사')
 
 def split_kor2_eng(inputTxt):
-    kiwi = Kiwi()
+    arr = []
+
+    # 용어가 아니라면 아래 기능 순회 하고 단어 필드를 검색하여 해당 단어가 있으면 해당 단어를 조합하여 리턴
 
     trans = Translator()
-    arr = []
     items = kiwi.tokenize(inputTxt)
     for index, item in enumerate(items):
         if item[1] not in ['NNG', 'NNP', 'SL', 'XSN', 'SN']:
             continue
         text = item[0]
-
-        result = trans.translate(text, dest='en', src='ko')
-        arr.append(Word(
-            kor_text=text,
-            eng_text=result.text.lower(),
-            attrive_text=eng2attrive(result.text.lower()),
-            pos=str(index),
-            code=pos_code_to_korean(item[1])
-        ))
+        word = session.query(FnWord).filter(FnWord.word == text).first()
+        if word is not None:
+            arr.append(Word(
+                kor_text=word.word,
+                eng_text=word.word_eng,
+                attrive_text=word.word_abbr,
+                pos=str(index),
+                code=pos_code_to_korean(item[1])
+            ))
+        else:
+            wording = session.query(FnWording).filter(FnWording.wording == word).first()
+            if wording is not None:
+                arr.append(Word(
+                    kor_text=text,
+                    eng_text=wording.wording,
+                    attrive_text=wording.wording_abbr,
+                    pos=str(index),
+                    code=''
+                ))
+            else:
+                result = trans.translate(text, dest='en', src='ko')
+                arr.append(Word(
+                    kor_text=text,
+                    eng_text=result.text.lower(),
+                    attrive_text=eng2attrive(result.text.lower()),
+                    pos=str(index),
+                    code=pos_code_to_korean(item[1])
+                ))
     return arr
 
 
 def kor2_eng_col(inputTxt):
-    kiwi = Kiwi()
-
     trans = Translator()
     arr = []
     items = kiwi.tokenize(inputTxt)
