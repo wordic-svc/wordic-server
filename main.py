@@ -184,11 +184,11 @@ async def say_hello(name: str = Body(...), abbri: bool = Body(...)):
             # merge array arr and result_word
 
             attrive_text = list(map(lambda x: x.attrive_text.lower(), obj))
-            result.pascal_case = list_to_pascal_case(attrive_text)
-            result.camel_case = list_to_camel_case(attrive_text)
-            result.snake_case_l = list_to_snake_case(attrive_text).upper()
-            result.snake_case_s = list_to_snake_case(attrive_text).lower()
-            result.kebab_case = list_to_kebab_case(attrive_text)
+            result.pascal_case = list_to_pascal_case(arr)
+            result.camel_case = list_to_camel_case(arr)
+            result.snake_case_l = list_to_snake_case(arr).upper()
+            result.snake_case_s = list_to_snake_case(arr).lower()
+            result.kebab_case = list_to_kebab_case(arr)
             result.combined_text = attrive_text  # Assuming you want to add 'attrive_text' to 'combined_text'
     else:
         arr = []
