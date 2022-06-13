@@ -13,7 +13,7 @@ from pydantic import BaseModel, validator, field_validator
 from typing import Optional
 import config
 import logging
-from model.models import FnWord, FnWording, Base
+from model.models import FnWord, FnWording, Base, FnHstr
 import datetime
 import urllib.parse
 
@@ -29,7 +29,8 @@ engine = create_engine(DATABASE_URL)
 
 SessionLocal = sessionmaker(bind=engine)
 session = SessionLocal()
-
+# create table
+# Base.metadata.create_all(bind=engine)
 kiwi = kiwipiepy.Kiwi()
 fnWords = session.query(FnWord).filter().all()
 for fnWord in fnWords:
@@ -122,6 +123,17 @@ async def say_hello3(name: str):
     return {'result': {
         "info": result,
         "words": obj
+    }}
+
+@router.get("/input/{name}", response_model=dict)
+async def say_hello3(name: str):
+    fnHstr = FnHstr()
+    fnHstr.wording = name
+    session.add(fnHstr)
+    session.flush()
+    session.commit()
+    return {'result': {
+        "info": name
     }}
 
 
