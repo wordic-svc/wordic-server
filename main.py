@@ -151,7 +151,9 @@ async def say_hello3(name: str):
         "info": name
     }}
 
-
+def remove_prefixes(words):
+    prefixes = ["the", "a"]  # 여기에 제거하고 싶은 접두사들을 추가하세요.
+    return [word for word in words if word.lower() not in prefixes]
 # /text/{name} 엔드포인트
 @router.post("/text2", response_model=dict)
 async def say_hello(name: str = Body(...), abbri: bool = Body(...)):
@@ -217,6 +219,32 @@ async def say_hello(name: str = Body(...), abbri: bool = Body(...)):
             result.snake_case_s = list_to_snake_case(arr).lower()
             result.kebab_case = list_to_kebab_case(arr)
             result.combined_text = attrive_text  # Assuming you want to add 'attrive_text' to 'combined_text'
+        resultPapagoArr = []
+        resultPapago = Result(
+                kebab_case='',
+                camel_case='',
+                snake_case_l='',
+                snake_case_s='',
+                pascal_case='',
+                combined_text=[]
+            )
+        papagoEng = requestPapago(name).split(' ')
+        papagoEng = remove_prefixes(papagoEng)
+        for word in papagoEng:
+            word = word.lower()
+            if len(word) > 5:
+                resultPapagoArr.append(abbreviate.process_string(word, 4).lower())
+            elif len(word) > 4:
+                resultPapagoArr.append(abbreviate.process_string(word, 3).lower())
+            else:
+                resultPapagoArr.append(abbreviate.process_string(word, 2).lower())
+        resultPapago.pascal_case = list_to_pascal_case(resultPapagoArr)
+        resultPapago.camel_case = list_to_camel_case(resultPapagoArr)
+        resultPapago.snake_case_l = list_to_snake_case(resultPapagoArr).upper()
+        resultPapago.snake_case_s = list_to_snake_case(resultPapagoArr).lower()
+        resultPapago.kebab_case = list_to_kebab_case(resultPapagoArr)
+        resultPapago.combined_text = []  # Assuming you want to add 'attrive_text' to 'combined_text'
+
     else:
         arr = []
         result = Result(
@@ -227,7 +255,6 @@ async def say_hello(name: str = Body(...), abbri: bool = Body(...)):
             pascal_case='',
             combined_text=[]
         )
-
         result_word = ''
         obj = split_kor3_eng(name)
         # check white space obj.eng_text
@@ -251,22 +278,23 @@ async def say_hello(name: str = Body(...), abbri: bool = Body(...)):
         result.snake_case_s = list_to_snake_case(arr).lower()
         result.kebab_case = list_to_kebab_case(arr)
         result.combined_text = attrive_text  # Assuming you want to add 'attrive_text' to 'combined_text'
+        resultPapago = Result(
+                kebab_case='',
+                camel_case='',
+                snake_case_l='',
+                snake_case_s='',
+                pascal_case='',
+                combined_text=[]
+            )
+        papagoEng = requestPapago(name).split(' ')
+        papagoEng = remove_prefixes(papagoEng)
+        resultPapago.pascal_case = list_to_pascal_case(papagoEng)
+        resultPapago.camel_case = list_to_camel_case(papagoEng)
+        resultPapago.snake_case_l = list_to_snake_case(papagoEng).upper()
+        resultPapago.snake_case_s = list_to_snake_case(papagoEng).lower()
+        resultPapago.kebab_case = list_to_kebab_case(papagoEng)
+        resultPapago.combined_text = []  # Assuming you want to add 'attrive_text' to 'combined_text'
 
-    resultPapago = Result(
-            kebab_case='',
-            camel_case='',
-            snake_case_l='',
-            snake_case_s='',
-            pascal_case='',
-            combined_text=[]
-        )
-    papagoEng = requestPapago(name).replace('the', '').replace('The', '').replace('THE', '').replace('a', '').replace('A', '').replace('an', '').replace('An', '').replace('AN', '').split(' ')
-    resultPapago.pascal_case = list_to_pascal_case(papagoEng)
-    resultPapago.camel_case = list_to_camel_case(papagoEng)
-    resultPapago.snake_case_l = list_to_snake_case(papagoEng).upper()
-    resultPapago.snake_case_s = list_to_snake_case(papagoEng).lower()
-    resultPapago.kebab_case = list_to_kebab_case(papagoEng)
-    resultPapago.combined_text = []  # Assuming you want to add 'attrive_text' to 'combined_text'
 
 
     return {'result': {
