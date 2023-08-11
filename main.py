@@ -55,6 +55,14 @@ async def say_hello(name: str):
             })
         return {'result': arr}
 # 텍스트를 처리할 함수
+# /text/{name} 엔드포인트
+@router.get("/eng/{name}", response_model=dict)
+async def say_hello(name: str):
+    return {'result': {
+        "eng_name": f"{name}",
+        "attr_name": f"{eng2attrive(name)}"
+    }}
+# 텍스트를 처리할 함수
 def process_text(text):
     # 여기에 텍스트 처리 로직을 추가하십시오 (kor2_eng_col 함수 등을 사용)
     result = f"{kor2_eng_col(text)}"  # 예시: kor2_eng_col 함수로 처리
@@ -101,6 +109,19 @@ def kor2_eng_col(inputTxt):
     print(arr)
     return list_to_snake_case(arr)
 
+def eng2attrive(text):
+    if std_data.word_to_chng.get(text) is not None:
+        text = std_data.word_to_chng[text]
+
+    if len(text) > 5:
+        text = abbreviate.process_string(text, 4)
+    elif len(text) > 4:
+        text = abbreviate.process_string(text, 3)
+    elif len(text) > 3:
+        text = abbreviate.process_string(text, 2)
+
+    print(text)
+    return text
 
 # "/wordic-api" 경로 아래에 라우터를 추가합니다.
 app.include_router(router, prefix="/wordic-api")
