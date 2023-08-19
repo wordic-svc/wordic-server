@@ -336,6 +336,11 @@ word_to_abbrev = {
     "휴일": "HLDY",
     "정보": "INFO",
     "이력": "HSTR",
+    "텍스트": "TXT",
+    "표현": "DSPL",
+    "표출": "DSPL",
+    "최소": "MIN",
+    "최대": "MAX",
 }
 
 word_to_chng = {
