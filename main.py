@@ -1,8 +1,11 @@
+from concurrent.futures import ThreadPoolExecutor
+
 from kiwipiepy import Kiwi
 from googletrans import Translator
 import abbreviate
 import std_data
 from fastapi import Depends, FastAPI
+import asyncio
 
 
 app = FastAPI()
@@ -11,9 +14,32 @@ app = FastAPI()
 async def root():
     return {"message": "Hello World"}
 
-@app.get("/text/{name}")
+# /text/{name} 엔드포인트
+@app.get("/text/{name}", response_model=dict)
 async def say_hello(name: str):
-    return {"message": f"{kor2_eng_col(name)}"}
+    # asyncio 루프를 정의
+    loop = asyncio.get_event_loop()
+
+    # 여러 개의 텍스트를 처리하기 위해 ThreadPoolExecutor를 사용
+    with ThreadPoolExecutor() as executor:
+        # 여러 개의 텍스트를 처리하기 위해 asyncio.gather를 사용
+        texts = name.split(',')  # 쉼표로 구분된 여러 개의 텍스트를 리스트로 분리
+        results = await asyncio.gather(
+            *[loop.run_in_executor(executor, process_text, text) for text in texts]
+        )
+
+        arr = []
+        for i, obj in enumerate(results):
+            arr.append({
+                "kor_name": f"{texts[i]}",
+                "eng_name": f"{obj}"
+            })
+        return {'result': arr}
+# 텍스트를 처리할 함수
+def process_text(text):
+    # 여기에 텍스트 처리 로직을 추가하십시오 (kor2_eng_col 함수 등을 사용)
+    result = f"{kor2_eng_col(text)}"  # 예시: kor2_eng_col 함수로 처리
+    return result
 
 def snake_to_camel(snake_case):
     words = snake_case.split('_')  # 스네이크 케이스 문자열을 밑줄로 분할하여 단어 목록 생성
