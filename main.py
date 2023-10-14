@@ -4,7 +4,7 @@ from kiwipiepy import Kiwi
 from googletrans import Translator
 import abbreviate
 import std_data
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, APIRouter
 import asyncio
 
 from fastapi.middleware.cors import CORSMiddleware
@@ -19,12 +19,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# APIRouter 인스턴스를 생성합니다.
+router = APIRouter()
+
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
 
 # /text/{name} 엔드포인트
-@app.get("/text/{name}", response_model=dict)
+@router.get("/text/{name}", response_model=dict)
 async def say_hello(name: str):
     # asyncio 루프를 정의
     loop = asyncio.get_event_loop()
@@ -97,3 +101,6 @@ def kor2_eng_col(inputTxt):
     print(arr)
     return list_to_snake_case(arr)
 
+
+# "/wordic-api" 경로 아래에 라우터를 추가합니다.
+app.include_router(router, prefix="/wordic-api")
