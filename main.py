@@ -24,6 +24,12 @@ async def say_hello(name: str):
     with ThreadPoolExecutor() as executor:
         # 여러 개의 텍스트를 처리하기 위해 asyncio.gather를 사용
         texts = name.split(',')  # 쉼표로 구분된 여러 개의 텍스트를 리스트로 분리
+        # textsSizte check
+
+        for text in texts:
+            if len(text) > 8:
+                return {'result': 'Too long text'}
+
         results = await asyncio.gather(
             *[loop.run_in_executor(executor, process_text, text) for text in texts]
         )
@@ -54,19 +60,22 @@ def list_to_camel_case(arr):
     camel_case_str = camel_case_str[0].lower() + camel_case_str[1:]
     return camel_case_str
 def kor2_eng_col(inputTxt):
-    print(inputTxt)
     kiwi = Kiwi()
 
     trans = Translator()
     arr = []
     items = kiwi.tokenize(inputTxt)
     for item in items:
-        if item[1] not in ['NNG', 'NNP', 'SL']:
+        if item[1] not in ['NNG', 'NNP', 'SL', 'XSN']:
             continue
-        if std_data.word_to_abbrev.get(item[0]) is not None:
-            arr.append(std_data.word_to_abbrev[item[0]])
+        text = item[0]
+        if std_data.word_to_chng.get(text) is not None:
+            text = std_data.word_to_chng[text]
+
+        if std_data.word_to_abbrev.get(text) is not None:
+            arr.append(std_data.word_to_abbrev[text])
             continue
-        result = trans.translate(item[0], dest='en', src='ko')
+        result = trans.translate(text, dest='en', src='ko')
         text = result.text.lower()
         if len(text) > 5:
             arr.append(abbreviate.process_string(text, 4))
