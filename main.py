@@ -7,9 +7,18 @@ import std_data
 from fastapi import Depends, FastAPI
 import asyncio
 
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
@@ -66,7 +75,7 @@ def kor2_eng_col(inputTxt):
     arr = []
     items = kiwi.tokenize(inputTxt)
     for item in items:
-        if item[1] not in ['NNG', 'NNP', 'SL', 'XSN']:
+        if item[1] not in ['NNG', 'NNP', 'SL', 'XSN', 'SN']:
             continue
         text = item[0]
         if std_data.word_to_chng.get(text) is not None:
