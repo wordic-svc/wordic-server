@@ -334,7 +334,8 @@ word_to_abbrev = {
     "언어": "LANG",
     "휴업": "TCBIZ",
     "휴일": "HLDY",
-    "정보": "INFO"
+    "정보": "INFO",
+    "이력": "HSTR",
 }
 
 word_to_chng = {
