@@ -333,7 +333,8 @@ word_to_abbrev = {
     "휴대": "MBL",
     "언어": "LANG",
     "휴업": "TCBIZ",
-    "휴일": "HLDY"
+    "휴일": "HLDY",
+    "정보": "INFO"
 }
 
 word_to_chng = {
