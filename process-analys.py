@@ -6,7 +6,6 @@ import mybatis_mapper2sql
 from sql_metadata import Parser
 from concurrent.futures import ThreadPoolExecutor
 
-
 def find_rest_methods_referencing_service(root_folder):
     result_list = []
 
@@ -59,16 +58,17 @@ def find_rest_methods_referencing_service(root_folder):
                                                     if isinstance(annotation.element, list):
                                                         for elem in annotation.element:
                                                             if elem.name == 'value':
-                                                                api_url = elem.value.value  # Literal 객체의 value 속성에서 실제 값을 가져옴
-                                                                break
-                                                    elif annotation.element:
+                                                                if hasattr(elem.value, 'value'):  # elem.value가 value 속성을 가지고 있는지 확인
+                                                                    api_url = elem.value.value  # Literal 객체의 value 속성에서 실제 값을 가져옴
+                                                                    break
+                                                    elif annotation.element and hasattr(annotation.element, 'value'):
                                                         api_url = annotation.element.value
-                                                    break
+                                                    # 여기에 다른 조건문을 추가하여 필요한 경우에 다른 어노테이션의 value를 처리할 수 있습니다.
 
-                                            method_url = (annotation.element.value if annotation.element else "").strip('"')
-                                            if method_url.startswith('/'):
-                                                method_url = method_url[1:]
-                                            api_url = class_base_url + method_url
+                                            # 메소드 URL 결정 부분은 모든 어노테이션을 확인한 후에 처리해야 합니다.
+                                            if api_url and api_url.startswith('/'):
+                                                api_url = api_url[1:]
+                                            api_url = class_base_url + api_url
 
                                             services_list = []
                                             for path, node in method.filter(javalang.tree.MethodInvocation):
@@ -89,7 +89,6 @@ def find_rest_methods_referencing_service(root_folder):
                         print(f"Error parsing file {file_path}: {e}")
 
     return result_list
-
 def find_mapper_methods_called_by_service(root_folder):
     result_list = []
 
@@ -110,6 +109,9 @@ def find_mapper_methods_called_by_service(root_folder):
                                 mapper_dict = {}
                                 for field in type_declaration.fields:
                                     if 'Mapper' in field.type.name and any(anno.name == 'Autowired' for anno in field.annotations):
+                                        for declarator in field.declarators:
+                                            mapper_dict[declarator.name] = field.type.name
+                                    if 'Dao' in field.type.name and any(anno.name == 'Resource' for anno in field.annotations):
                                         for declarator in field.declarators:
                                             mapper_dict[declarator.name] = field.type.name
 
@@ -135,7 +137,6 @@ def find_mapper_methods_called_by_service(root_folder):
     return result_list
 def extract_table_names_from_sql(sql):
     return Parser(sql).tables
-
 def parse_xml_file(xml_file_path):
     result = []
 
@@ -146,8 +147,6 @@ def parse_xml_file(xml_file_path):
         namespace = root.get('namespace')
         if namespace:
             interface_name = namespace.split('.')[-1]
-
-            # mybatis-mapper2sql 라이브러리를 사용하여 SQL 문을 파싱
             mapper, _ = mybatis_mapper2sql.create_mapper(xml=xml_file_path)
             methods = {}
 
@@ -171,15 +170,11 @@ def parse_xml_file(xml_file_path):
         print(f"Error parsing XML file: {xml_file_path}")
 
     return result
-
 def parse_xml_files_subset(xml_files_subset):
     results = []
     for xml_file_path in xml_files_subset:
         results.extend(parse_xml_file(xml_file_path))
     return results
-
-# 기존의 parse_xml_file 함수는 동일하게 유지합니다.
-
 def find_mybatis_xml_files_and_parse_namespace(root_folder):
     xml_files_info = []
 
@@ -203,28 +198,29 @@ def find_mybatis_xml_files_and_parse_namespace(root_folder):
 
     return xml_files_info
 
+root_folder = '/Users/doheyonkim/Downloads/egovframework-all-in-oneAllNew'
 
-
-
-root_folder = '/Users/doheyonkim/Depot/if-api'
+print("===== Start Controller to Service Result =====")
 controller_2_service = find_rest_methods_referencing_service(root_folder)
-
-print("===== Controller to Service Result =====")
 for item in controller_2_service:
     print(item)
+print("===== End Controller to Service Result=====")
 
+print("===== Start Service to Mapper Result =====")
 service_2_mapper = find_mapper_methods_called_by_service(root_folder)
-print("===== Service to Mapper Result =====")
 for item in service_2_mapper:
     print(item)
+print("===== End Service to Mapper Result =====")
 
+print("===== Start Mapper to Table Result =====")
 mapper_2_table = find_mybatis_xml_files_and_parse_namespace(root_folder)
-print("===== Mapper to Table Result =====")
 for info in mapper_2_table:
     print(info)
+print("===== End Mapper to Table Result =====")
 
 final_result = []
 
+print("===== Analysis Controller to Table Result =====")
 for controller in controller_2_service:
     for api_info in controller['ApiInfo']:
         rest_api_url = api_info['url'].strip('"')  # URL에서 따옴표 제거
@@ -252,3 +248,4 @@ for controller in controller_2_service:
 
 for item in final_result:
     print(item)
+print("===== Analysis Controller to Table End =====")

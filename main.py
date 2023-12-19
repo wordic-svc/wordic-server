@@ -1,19 +1,33 @@
 from concurrent.futures import ThreadPoolExecutor
-
 from kiwipiepy import Kiwi
 from googletrans import Translator
-
 import abbreviate
 import std_data
 from fastapi import Depends, FastAPI, APIRouter
 import asyncio
-
+from sqlalchemy import create_engine, text
+from sqlalchemy.orm import sessionmaker
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, validator, field_validator
 from typing import Optional
+import config
+import logging
+import datetime
+import urllib.parse
 
 app = FastAPI()
 
+folder_path = config.MF_DATA_PATH
+log_filename = datetime.datetime.now().strftime(f"./sandoll.log")
+logging.basicConfig(filename=log_filename, level=logging.INFO, format='%(asctime)s - %(message)s')
+
+# passwd = urllib.parse.quote(config.DATABASE_PASSWORD)
+# DATABASE_URL = f'postgresql+psycopg2://{config.DATABASE_USER}:{passwd}@{config.DATABASE_HOST}:{config.DATABASE_PORT}/{config.DATABASE_NAME}'
+# engine = create_engine(DATABASE_URL)
+
+# SessionLocal = sessionmaker(bind=engine)
+# 새 세션 생성
+# session = SessionLocal()
 
 class Result(BaseModel):
     kebab_case: str
@@ -22,6 +36,14 @@ class Result(BaseModel):
     snake_case_s: str
     pascal_case: str
     combined_text: list
+
+
+class Word(BaseModel):
+    kor_text: str
+    eng_text: str
+    attrive_text: str
+    pos: str
+    code: str
 
 app.add_middleware(
     CORSMiddleware,
@@ -99,10 +121,8 @@ async def say_hello(name: str):
 # /text/{name} 엔드포인트
 @router.get("/eng/{name}", response_model=dict)
 async def say_hello(name: str):
-    return {'result': {
-        "eng_name": f"{name}",
-        "attr_name": f"{eng2attrive(name)}"
-    }}
+    data = eng2attrive_list(name)
+    return {'result': data}
 
 
 # 텍스트를 처리할 함수
@@ -133,13 +153,6 @@ def list_to_camel_case(arr):
 def list_to_pascal_case(arr):
     return ''.join(map(lambda x: x[0].upper() + x[1:], arr))
 
-
-class Word(BaseModel):
-    kor_text: str
-    eng_text: str
-    attrive_text: str
-    pos: str
-    code: str
 def pos_code_to_korean(pos_code):
     pos_mapping = {
         'NNG': '일반 명사',
@@ -202,6 +215,21 @@ def kor2_eng_col(inputTxt):
             arr.append(text)
     print(arr)
     return list_to_snake_case(arr)
+
+
+def eng2attrive_list(text):
+    if std_data.word_to_chng.get(text) is not None:
+        text = std_data.word_to_chng[text]
+
+    arr = []
+
+    for i in range(2, len(text) + 1):
+        result = abbreviate.process_string(text, i)
+        arr.append({
+            'text': result,
+            'length': i
+        })
+    return arr
 
 
 def eng2attrive(text):
