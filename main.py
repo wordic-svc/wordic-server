@@ -1,6 +1,8 @@
+import json
 import math
 from concurrent.futures import ThreadPoolExecutor
 import kiwipiepy
+import requests
 from googletrans import Translator
 import abbreviate
 import std_data
@@ -71,6 +73,19 @@ router = APIRouter()
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
+
+url = 'https://openapi.naver.com/v1/papago/n2mt'
+headers = {
+    'Content-Type': 'application/json',
+    'X-Naver-Client-Id': config.PAPAGO_CLIENT_ID,
+    'X-Naver-Client-Secret': config.PAPAGO_CLIENT_SECRET
+}
+
+def requestPapago(text):
+    data = {'source': 'ko', 'target': 'en', 'text': text}
+    response = requests.post(url, json.dumps(data), headers=headers)
+    en_text = response.json()['message']['result']['translatedText']
+    return en_text
 
 
 # /text/{name} 엔드포인트
@@ -237,9 +252,26 @@ async def say_hello(name: str = Body(...), abbri: bool = Body(...)):
         result.kebab_case = list_to_kebab_case(arr)
         result.combined_text = attrive_text  # Assuming you want to add 'attrive_text' to 'combined_text'
 
+    resultPapago = Result(
+            kebab_case='',
+            camel_case='',
+            snake_case_l='',
+            snake_case_s='',
+            pascal_case='',
+            combined_text=[]
+        )
+    papagoEng = requestPapago(name).replace('the', '').replace('The', '').replace('THE', '').replace('a', '').replace('A', '').replace('an', '').replace('An', '').replace('AN', '').split(' ')
+    resultPapago.pascal_case = list_to_pascal_case(papagoEng)
+    resultPapago.camel_case = list_to_camel_case(papagoEng)
+    resultPapago.snake_case_l = list_to_snake_case(papagoEng).upper()
+    resultPapago.snake_case_s = list_to_snake_case(papagoEng).lower()
+    resultPapago.kebab_case = list_to_kebab_case(papagoEng)
+    resultPapago.combined_text = []  # Assuming you want to add 'attrive_text' to 'combined_text'
+
 
     return {'result': {
         "info": result,
+        "papago": resultPapago,
         "words": result_word
     }}
 
