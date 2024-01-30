@@ -83,9 +83,11 @@ headers = {
 
 def requestPapago(text):
     data = {'source': 'ko', 'target': 'en', 'text': text}
+    trans = Translator()
     response = requests.post(url, json.dumps(data), headers=headers)
     if response.status_code != 200:
-        return 'Many request Error'
+        en_text = trans.translate(text, dest='en', src='ko')
+        return en_text.text
     en_text = response.json()['message']['result']['translatedText']
     return en_text
 
